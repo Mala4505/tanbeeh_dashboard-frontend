@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, Users, LogOut, Menu, X, User as UserIcon } from 'lucide-react';
 export function Layout() {
   const {
