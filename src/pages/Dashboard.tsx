@@ -1,67 +1,69 @@
-// src/pages/Dashboard.tsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getAttendance, AttendanceRecord } from "../services/attendance";
-import { DashboardOverview } from "../components/DashboardOverview";
-import { FiltersPanel } from "../components/FiltersPanel";
-import { AttendanceCharts } from "../components/AttendanceCharts";
-import { FlagHighlights } from "../components/FlagHighlights";
-import { AttendanceTable } from "../components/AttendanceTable";
-import { ChartSkeleton } from "../components/ChartSkeleton";
+import { getDashboard } from "../api/client";
+import AdminLayout from "../components/layouts/AdminLayout";
+import PrefectLayout from "../components/layouts/PrefectLayout";
+import DeputyLayout from "../components/layouts/DeputyLayout";
+import MasoolLayout from "../components/layouts/MasoolLayout";
+import MuaddibLayout from "../components/layouts/MuaddibLayout";
+import LajnatLayout from "../components/layouts/LajnatLayout";
 import { Spinner } from "../components/ui/Spinner";
-import { AttendanceFilters } from "../hooks/useAttendance"; // ✅ use canonical type
+import { Download } from "lucide-react";
+import { exportDashboardData } from "../lib/excel";
+import { DashboardFilters } from "../components/FiltersBar";
+
+
 
 export function Dashboard() {
   const { user } = useAuth();
-
-  const [data, setData] = useState<AttendanceRecord[]>([]); // ✅ plain array
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<AttendanceFilters>({
-    date_from: undefined,
-    date_to: undefined,
-    room: "",
-    student: "",
-    status: "",
-  });
-  const [dataset, setDataset] = useState<"fajr" | "maghrib-isha" | "dua">("fajr");
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const records = await getAttendance(dataset);
-      setData(records); // ✅ matches state type
-    } catch (err: any) {
-      setError(err.message || "Failed to load attendance data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [filters, setFilters] = useState<DashboardFilters>({
+    from: "",
+    to: "",
+    darajah: null,
+    hizb: null,
+    hizb_group: null,
+  });
+
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    fetchData();
-  }, [dataset]);
+    if (!user?.role) return;
+    setLoading(true);
+    setError(null);
+    getDashboard(user.role, filters)
+      .then((res) => {
+        setData(res);
+        setStats(res.summary);
+      })
+      .catch((err) => setError(err.message || "Failed to load dashboard"))
+      .finally(() => setLoading(false));
+  }, [user?.role, filters]);
 
-  const updateFilters = (newFilters: Partial<AttendanceFilters>) => {
-    setFilters({ ...filters, ...newFilters });
+  const handleExport = () => {
+    if (!stats) return;
+    const studentsData = (data?.students || []).map((s: any) => ({
+      ID: s.id,
+      Name: s.name,
+      Room: s.room,
+      Status: s.status,
+      "Last Attendance": s.lastAttendance,
+    }));
+    const flagsData = (data?.flags || []).map((f: any) => ({
+      ID: f.id,
+      "Student Name": f.studentName,
+      Room: f.room,
+      Reason: f.reason,
+      Date: f.date,
+      Status: f.status,
+    }));
+    exportDashboardData(stats, data.daily, studentsData, flagsData);
   };
 
-  const refresh = () => {
-    fetchData();
-  };
-
-  const handleClearFilters = () => {
-    setFilters({
-      date_from: undefined,
-      date_to: undefined,
-      room: "",
-      student: "",
-      status: "",
-    });
-  };
-
-  if (loading && data.length === 0) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spinner size="lg" />
@@ -69,70 +71,55 @@ export function Dashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-destructive/10 p-4 rounded-md text-destructive">
+        Error loading dashboard: {error}
+      </div>
+    );
+  }
+
+  if (!data) {
+    return <div className="text-destructive">No dashboard data available</div>;
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-darkTeal">Dashboard</h1>
-        <div className="text-sm text-gray-500">
-          Welcome back,{" "}
-          <span className="font-semibold text-cerulean">{user?.name}</span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, <span className="font-semibold text-primary">{user?.name}</span>
+          </p>
         </div>
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+        >
+          <Download className="h-4 w-4" />
+          Export to Excel
+        </button>
       </div>
 
-      {/* Dataset Selector */}
-      <div className="flex space-x-4">
-        {["fajr", "maghrib-isha", "dua"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setDataset(type as any)}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              dataset === type
-                ? "bg-cerulean text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            {type === "fajr"
-              ? "Fajr"
-              : type === "maghrib-isha"
-              ? "Maghrib–Isha"
-              : "Du’a"}
-          </button>
-        ))}
-      </div>
-
-      {/* Overview */}
-      <DashboardOverview data={data} />
-
-      {/* Filters */}
-      <FiltersPanel
-        filters={filters}
-        onUpdate={updateFilters}
-        onClear={handleClearFilters}
-      />
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 p-4 rounded-md text-red-700 mb-6">
-          Error loading data: {error}
-          <button onClick={refresh} className="ml-4 underline">
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Flag Highlights */}
-      <FlagHighlights data={data} />
-
-      {/* Charts */}
-      {loading ? <ChartSkeleton /> : <AttendanceCharts data={data} />}
-
-      {/* Table */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold text-darkTeal mb-4">
-          Recent Attendance Records
-        </h2>
-        <AttendanceTable data={data} />
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
+        {user?.role === "admin" && (
+          <AdminLayout data={data} filters={filters} onFiltersChange={setFilters} />
+        )}
+        {user?.role === "prefect" && (
+          <PrefectLayout data={data} filters={filters} onFiltersChange={setFilters} />
+        )}
+        {user?.role === "deputy" && (
+          <DeputyLayout data={data} filters={filters} onFiltersChange={setFilters} />
+        )}
+        {user?.role === "masool" && (
+          <MasoolLayout data={data} filters={filters} onFiltersChange={setFilters} />
+        )}
+        {user?.role === "muaddib" && (
+          <MuaddibLayout data={data} filters={filters} onFiltersChange={setFilters} />
+        )}
+        {user?.role === "lajnat_member" && (
+          <LajnatLayout data={data} filters={filters} onFiltersChange={setFilters} />
+        )}
       </div>
     </div>
   );
