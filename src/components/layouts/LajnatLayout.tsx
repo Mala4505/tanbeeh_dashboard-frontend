@@ -1,11 +1,12 @@
 import { useAuth } from "../../context/AuthContext";
-import FiltersBar from "../FiltersBar";
+import FiltersBar, { DashboardFilters } from "../FiltersBar";
 import CardsSummary from "../CardsSummary";
 import AttendanceTrend from "../charts/AttendanceTrend";
 import FlaggedTrend from "../charts/FlaggedTrend";
 import DistributionPie from "../charts/DistributionPie";
 import ApprovalsTable from "../tables/ApprovalsTable";
 import FlaggedTable from "../tables/FlaggedTable";
+import StudentsTable from "../tables/StudentTable"; // ✅ if you want to show students
 import SkeletonCard from "../SkeletonCard";
 import {
   DashboardResponse,
@@ -14,82 +15,93 @@ import {
   removeFlag,
   addFlagFeedback,
 } from "../../api/client";
+import { computeSummary, RoomsData, DailyData } from "../../utils/filterUtils";
 
 interface LajnatLayoutProps {
   data: DashboardResponse | null;
-  filters: any;
-  onFiltersChange: (filters: any) => void;
+  stats: ReturnType<typeof computeSummary> | null;
+  rooms: RoomsData | null;
+  filters: DashboardFilters;
+  onFiltersChange: (filters: DashboardFilters) => void;
+  daily: DailyData | null;
+  flagged: any[];
+  students: any[];   // ✅ added
 }
 
-export default function LajnatLayout({ data, filters, onFiltersChange }: LajnatLayoutProps) {
+export default function LajnatLayout({
+  data,
+  stats,
+  rooms,
+  filters,
+  onFiltersChange,
+  daily,
+  flagged,
+  students,
+}: LajnatLayoutProps) {
   const { user } = useAuth();
 
-  if (!data || !data.summary) {
+  if (!data || !stats) {
     return (
       <div className="space-y-8">
-        <SkeletonCard height="40px" /> {/* FiltersBar */}
-        <div className="grid grid-cols-5 gap-4">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
+        <SkeletonCard height="40px" />
+        <div className="grid grid-cols-6 gap-4">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
-        <SkeletonCard height="400px" /> {/* AttendanceTrend */}
-        <SkeletonCard height="400px" /> {/* FlaggedTrend */}
-        <SkeletonCard height="400px" /> {/* DistributionPie */}
-        <SkeletonCard height="300px" /> {/* ApprovalsTable */}
-        <SkeletonCard height="300px" /> {/* FlaggedTable */}
+        <SkeletonCard height="400px" />
+        <SkeletonCard height="400px" />
+        <SkeletonCard height="400px" />
+        <SkeletonCard height="300px" />
+        <SkeletonCard height="300px" />
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      {/* Filters */}
       <FiltersBar
         role="lajnat_member"
         onApply={onFiltersChange}
         darajahOptions={data.meta.options?.darajah ?? []}
         hizbOptions={data.meta.options?.hizb ?? []}
         hizbGroupOptions={data.meta.options?.hizb_group ?? []}
+        initialFrom={data.meta.range.start}
+        initialTo={data.meta.range.end}
       />
 
-      {/* Summary Cards */}
       <CardsSummary
-        totalStudents={data.summary.totalStudents}
-        presentRate={data.summary.presentRate}
-        absentRate={data.summary.absentRate}
-        lateRate={data.summary.lateRate}
-        flaggedCount={data.summary.flaggedCount}
+        totalStudents={stats.totalStudents}
+        presentRateDaily={stats.presentRateDaily}
+        absentRateDaily={stats.absentRateDaily}
+        presentRateOverall={stats.presentRateOverall}
+        absentRateOverall={stats.absentRateOverall}
+        flaggedCount={stats.flaggedCount}
         showFlagsWidget={true}
       />
 
-      {/* Charts (aligned to backend payload) */}
-      <AttendanceTrend data={data.daily ?? null} />
-      <FlaggedTrend data={data.flagged ?? null} />
-      <DistributionPie
-        data={data.rooms ?? null}
-        title="Room Utilization"
-        subtitle="Rates by room"
-      />
+      {/* Charts use filtered props */}
+      <AttendanceTrend data={daily} filters={filters} />
+      <FlaggedTrend data={flagged} filters={filters} />
+      <DistributionPie data={rooms} filters={filters} title="Room Utilization" subtitle="Rates by room" />
 
       {/* Tables */}
       <ApprovalsTable
-        rows={data.flags ?? []} // approvals table expects flag items; guard optional
+        rows={flagged}
         onApprove={approveFlag}
         onReject={rejectFlag}
         onFeedback={(id) => addFlagFeedback(id, "Reviewed by Lajnat")}
       />
 
       <FlaggedTable
-        rows={data.flags ?? []}
+        rows={flagged}
         role={user?.role ?? "lajnat_member"}
         onApprove={approveFlag}
         onReject={rejectFlag}
         onRemove={removeFlag}
         onFeedback={(id) => addFlagFeedback(id, "Needs review")}
       />
+
+      {/* Optional: show students if needed */}
+      <StudentsTable rows={students} />
     </div>
   );
 }

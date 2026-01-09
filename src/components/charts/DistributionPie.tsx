@@ -1,16 +1,28 @@
-import React from "react";
+import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
+import { ChartSkeleton } from "../ChartSkeleton";
+import { applyFilters } from "../../utils/filterUtils";
+import { DashboardFilters } from "../FiltersBar";
 
 interface DistributionPieProps {
-  data: { labels: string[]; rates: number[] } | null;
+  data: { labels: string[]; rates: number[]; students?: any[] } | null;
   title: string;
   subtitle?: string;
+  filters: DashboardFilters;
 }
 
-export default function DistributionPie({ data, title, subtitle }: DistributionPieProps) {
-  if (!data || !data.labels) {
-    return <div>Loading distribution...</div>;
-  }
+export default function DistributionPie({ data, title, subtitle, filters }: DistributionPieProps) {
+  const [loading, setLoading] = useState(false);
+
+  const filtered = useMemo(() => {
+    if (!data?.students) return [];
+    setLoading(true);
+    const sliced = applyFilters(data.students, filters);
+    setLoading(false);
+    return sliced;
+  }, [data?.students, filters.darajah, filters.hizb, filters.hizb_group]);
+
+  if (loading || !data || !data.labels) return <ChartSkeleton />;
 
   const option = {
     title: { text: title, subtext: subtitle, left: "center" },

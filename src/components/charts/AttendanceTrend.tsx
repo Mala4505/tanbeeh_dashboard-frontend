@@ -1,5 +1,8 @@
-import React from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
+import { ChartSkeleton } from "../ChartSkeleton";
+import { applyFilters } from "../../utils/filterUtils";
+import { DashboardFilters } from "../FiltersBar";
 
 interface AttendanceTrendProps {
   data: {
@@ -8,13 +11,23 @@ interface AttendanceTrendProps {
     absent: number[];
     late: number[];
     rate: number[];
+    students?: any[];
   } | null;
+  filters: DashboardFilters;
 }
 
-export default function AttendanceTrend({ data }: AttendanceTrendProps) {
-  if (!data || !data.dates) {
-    return <div>Loading attendance trend...</div>;
-  }
+export default function AttendanceTrend({ data, filters }: AttendanceTrendProps) {
+  const [loading, setLoading] = useState(false);
+
+  const filtered = useMemo(() => {
+    if (!data?.students) return [];
+    setLoading(true);
+    const sliced = applyFilters(data.students, filters);
+    setLoading(false);
+    return sliced;
+  }, [data?.students, filters.darajah, filters.hizb, filters.hizb_group]);
+
+  if (loading || !data || !data.dates) return <ChartSkeleton />;
 
   const option = {
     tooltip: { trigger: "axis" },

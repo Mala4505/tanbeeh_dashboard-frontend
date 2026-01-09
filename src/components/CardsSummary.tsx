@@ -10,16 +10,18 @@ import {
 
 interface CardsSummaryProps {
   totalStudents: number;
-  presentRate: number;
-  absentRate: number;
-  lateRate: number;
+  presentRateDaily: number;
+  absentRateDaily: number;
+  presentRateOverall: number;
+  absentRateOverall: number;
   showFlagsWidget?: boolean;
   flaggedCount?: number;
   trends?: {
     students?: number;
-    present?: number;
-    absent?: number;
-    late?: number;
+    presentDaily?: number;
+    absentDaily?: number;
+    presentOverall?: number;
+    absentOverall?: number;
     flagged?: number;
   };
 }
@@ -40,9 +42,10 @@ interface CardConfig {
 
 export default function CardsSummary({
   totalStudents,
-  presentRate,
-  absentRate,
-  lateRate,
+  presentRateDaily,
+  absentRateDaily,
+  presentRateOverall,
+  absentRateOverall,
   showFlagsWidget,
   flaggedCount,
   trends = {},
@@ -60,10 +63,10 @@ export default function CardsSummary({
       isAccent: true,
     },
     {
-      title: "Present Rate",
-      value: `${presentRate}%`,
+      title: "Daily Present %",
+      value: `${presentRateDaily.toFixed(1)}%`,
       icon: UserCheck,
-      trend: trends.present ?? 0,
+      trend: trends.presentDaily ?? 0,
       accentClass: "bg-card",
       iconBgClass: "bg-green-100",
       iconColorClass: "text-green-600",
@@ -71,10 +74,10 @@ export default function CardsSummary({
       trendColorClass: "text-green-600",
     },
     {
-      title: "Absent Rate",
-      value: `${absentRate}%`,
+      title: "Daily Absent %",
+      value: `${absentRateDaily.toFixed(1)}%`,
       icon: UserX,
-      trend: trends.absent ?? 0,
+      trend: trends.absentDaily ?? 0,
       accentClass: "bg-card",
       iconBgClass: "bg-red-100",
       iconColorClass: "text-red-600",
@@ -82,15 +85,26 @@ export default function CardsSummary({
       trendColorClass: "text-red-600",
     },
     {
-      title: "Late Rate",
-      value: `${lateRate}%`,
-      icon: Clock,
-      trend: trends.late ?? 0,
+      title: "Overall Present %",
+      value: `${presentRateOverall.toFixed(1)}%`,
+      icon: UserCheck,
+      trend: trends.presentOverall ?? 0,
       accentClass: "bg-card",
-      iconBgClass: "bg-yellow-100",
-      iconColorClass: "text-yellow-600",
+      iconBgClass: "bg-blue-100",
+      iconColorClass: "text-blue-600",
       textClass: "text-card-foreground",
-      trendColorClass: "text-yellow-600",
+      trendColorClass: "text-blue-600",
+    },
+    {
+      title: "Overall Absent %",
+      value: `${absentRateOverall.toFixed(1)}%`,
+      icon: UserX,
+      trend: trends.absentOverall ?? 0,
+      accentClass: "bg-card",
+      iconBgClass: "bg-purple-100",
+      iconColorClass: "text-purple-600",
+      textClass: "text-card-foreground",
+      trendColorClass: "text-purple-600",
     },
   ];
 
@@ -109,7 +123,7 @@ export default function CardsSummary({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       {cards.map((card, index) => {
         const Icon = card.icon;
         const isPositiveTrend = card.trend >= 0;

@@ -1,6 +1,8 @@
-import React from "react";
+import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
-import SkeletonCard from "../SkeletonCard";
+import { ChartSkeleton } from "../ChartSkeleton";
+import { applyFilters } from "../../utils/filterUtils";
+import { DashboardFilters } from "../FiltersBar";
 
 // Simple shape
 export interface RoomsData {
@@ -14,20 +16,33 @@ export interface RoomUtilizationItem {
   capacity: number;
   occupied: number;
   utilization: number; // percentage (0–100)
+  darajah?: string;
+  hizb?: string;
+  hizb_group?: string;
 }
 
 interface RoomUtilizationProps {
   data: RoomsData | RoomUtilizationItem[] | null;
+  filters: DashboardFilters;
 }
 
-export default function RoomUtilization({ data }: RoomUtilizationProps) {
-  if (!data) {
-    return <SkeletonCard height="400px" />;
-  }
+export default function RoomUtilization({ data, filters }: RoomUtilizationProps) {
+  const [loading, setLoading] = useState(false);
 
   // Case 1: extended array of objects
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    setLoading(true);
+    const sliced = applyFilters(data, filters);
+    setLoading(false);
+    return sliced;
+  }, [data, filters.darajah, filters.hizb, filters.hizb_group]);
+
+  if (loading || !data) return <ChartSkeleton />;
+
+  // Extended shape
   if (Array.isArray(data)) {
-    if (data.length === 0) return <SkeletonCard height="400px" />;
+    if (filteredData.length === 0) return <ChartSkeleton />;
 
     const option = {
       title: {
@@ -53,7 +68,7 @@ export default function RoomUtilization({ data }: RoomUtilizationProps) {
       legend: { data: ["Capacity", "Occupied", "Utilization %"], top: 30 },
       xAxis: {
         type: "category",
-        data: data.map((d) => d.room),
+        data: filteredData.map((d) => d.room),
         axisLabel: { rotate: 45 },
       },
       yAxis: [
@@ -64,20 +79,20 @@ export default function RoomUtilization({ data }: RoomUtilizationProps) {
         {
           name: "Capacity",
           type: "bar",
-          data: data.map((d) => d.capacity),
+          data: filteredData.map((d) => d.capacity),
           itemStyle: { color: "#9CA3AF" },
         },
         {
           name: "Occupied",
           type: "bar",
-          data: data.map((d) => d.occupied),
+          data: filteredData.map((d) => d.occupied),
           itemStyle: { color: "#4F46E5" },
         },
         {
           name: "Utilization %",
           type: "line",
           yAxisIndex: 1,
-          data: data.map((d) => d.utilization),
+          data: filteredData.map((d) => d.utilization),
           itemStyle: { color: "#10B981" },
           smooth: true,
         },
@@ -89,7 +104,7 @@ export default function RoomUtilization({ data }: RoomUtilizationProps) {
 
   // Case 2: simple { labels, rates }
   if (!data.labels || !data.rates) {
-    return <SkeletonCard height="400px" />;
+    return <ChartSkeleton />;
   }
 
   const option = {

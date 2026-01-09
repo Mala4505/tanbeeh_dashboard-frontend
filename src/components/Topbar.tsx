@@ -27,13 +27,13 @@ export default function Topbar() {
 
         <div className="h-8 w-px bg-gray-200 mx-2"></div>
 
-        <div className="flex items-center gap-3">
+        {/* <div className="flex items-center gap-3">
           <img src={user.avatarUrl} alt={user.name} className="h-9 w-9 rounded-full object-cover border border-gray-200" />
           <div className="hidden md:block text-sm">
             <p className="font-medium text-gray-900">{user.name}</p>
             <p className="text-gray-500 text-xs">{user.email}</p>
           </div>
-        </div>
+        </div> */}
       </div>
     </header>;
 }

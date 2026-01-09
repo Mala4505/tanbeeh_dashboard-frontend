@@ -1,17 +1,30 @@
-import FiltersBar from "../FiltersBar";
+import FiltersBar, { DashboardFilters } from "../FiltersBar";
 import CardsSummary from "../CardsSummary";
 import AttendanceTrend from "../charts/AttendanceTrend";
 import StudentsTable from "../tables/StudentTable";
 import SkeletonCard from "../SkeletonCard";
 import { DashboardResponse } from "../../api/client";
+import { computeSummary, RoomsData, DailyData } from "../../utils/filterUtils";
 
 interface MasoolLayoutProps {
   data: DashboardResponse | null;
-  onFiltersChange: (filters: any) => void;
+  stats: ReturnType<typeof computeSummary> | null;
+  rooms: RoomsData | null;
+  filters: DashboardFilters;
+  onFiltersChange: (filters: DashboardFilters) => void;
+  daily: DailyData | null;     // ✅ filtered daily
+  students: any[];             // ✅ filtered students
 }
 
-export default function MasoolLayout({ data, onFiltersChange }: MasoolLayoutProps) {
-  if (!data || !data.summary) {
+export default function MasoolLayout({
+  data,
+  stats,
+  filters,
+  onFiltersChange,
+  daily,
+  students,
+}: MasoolLayoutProps) {
+  if (!data || !stats) {
     return <SkeletonCard height="400px" />;
   }
 
@@ -23,11 +36,24 @@ export default function MasoolLayout({ data, onFiltersChange }: MasoolLayoutProp
         darajahOptions={data.meta.options?.darajah ?? []}
         hizbOptions={data.meta.options?.hizb ?? []}
         hizbGroupOptions={data.meta.options?.hizb_group ?? []}
+        initialFrom={data.meta.range.start}
+        initialTo={data.meta.range.end}
       />
 
-      <CardsSummary {...data.summary} showFlagsWidget={false} />
-      <AttendanceTrend data={data.daily ?? null} />
-      <StudentsTable rows={data.students ?? []} />
+      <CardsSummary
+        totalStudents={stats.totalStudents}
+        presentRateDaily={stats.presentRateDaily}
+        absentRateDaily={stats.absentRateDaily}
+        presentRateOverall={stats.presentRateOverall}
+        absentRateOverall={stats.absentRateOverall}
+        showFlagsWidget={false}
+      />
+
+      {/* Charts use filtered daily */}
+      <AttendanceTrend data={daily} filters={filters} />
+
+      {/* Tables use filtered students */}
+      <StudentsTable rows={students} />
     </div>
   );
 }

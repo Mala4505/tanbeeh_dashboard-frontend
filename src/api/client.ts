@@ -1,5 +1,6 @@
 import api from "../services/api";
 import { DashboardFilters } from "../components/FiltersBar";
+import { DailyData, RoomsData, filterDaily } from "../utils/filterUtils"; // ✅ reuse canonical types
 
 // --- Types ---
 export interface SummaryStats {
@@ -86,24 +87,11 @@ export interface Flag {
 }
 
 // Unified dashboard response
-export interface DailyData {
-  dates: string[];
-  present: number[];
-  absent: number[];
-  late: number[];
-  rate: number[];
-}
-
 export interface WeeklyData {
   weeks: string[];
   present: number[];
   absent: number[];
   late: number[];
-}
-
-export interface RoomsData {
-  labels: string[];
-  rates: number[];
 }
 
 export interface FlaggedRoom {
@@ -113,9 +101,9 @@ export interface FlaggedRoom {
 
 export interface DashboardResponse {
   summary: SummaryStats;
-  daily: DailyData;
+  daily: DailyData;       // ✅ canonical type
   weekly: WeeklyData;
-  rooms: RoomsData;
+  rooms: RoomsData;       // ✅ canonical type
   flagged: FlaggedRoom[];
   students: Student[];
   flags: Flag[];
@@ -155,9 +143,10 @@ function normalizeFlagStatus(status: string): FlagStatus {
 }
 
 // --- Query builder ---
-function buildQuery(role: string, filters: DashboardFilters): string {
+// function buildQuery(role: string, filters: DashboardFilters): string {
+function buildQuery( filters: DashboardFilters): string {
   return new URLSearchParams({
-    role,
+    // role,
     from: filters.from ?? "",
     to: filters.to ?? "",
     darajah: filters.darajah ?? "",
@@ -167,15 +156,15 @@ function buildQuery(role: string, filters: DashboardFilters): string {
   }).toString();
 }
 
-
 // --- API calls ---
 export async function getDashboard(
-  role: string,
-  filters: DashboardFilters = { from: "", to: "", darajah: null, hizb: null, hizb_group: null }
+  // role: string,
+  filters: DashboardFilters = { from: "", to: "", darajah: undefined, hizb: undefined, hizb_group: undefined }
 ): Promise<DashboardResponse> {
   try {
-    const query = buildQuery(role, filters);
-    const res = await api.get(`/api/v1/dashboard/bootstrap/?${query}`);
+    // const query = buildQuery(role, filters);
+    const query = buildQuery(filters);
+    const res = await api.get(`/api/v1/dashboard/bootstrap/?${query}`, { timeout: 30000 });
     const json = res.data;
 
     const students: Student[] = (json.students || []).map((row: StudentRow) => ({
@@ -193,7 +182,6 @@ export async function getDashboard(
     throw new Error(err.response?.data?.detail || `Dashboard fetch failed: ${err.message}`);
   }
 }
-
 
 // --- Flag mutations ---
 export async function approveFlag(flagId: string) {
