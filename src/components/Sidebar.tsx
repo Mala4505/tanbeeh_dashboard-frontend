@@ -44,9 +44,9 @@ export default function Sidebar() {
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-white">T</span>
+            <span className="font-bold text-white">J</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Tanbeeh</h1>
+          <h1 className="text-xl font-bold tracking-tight">Insights</h1>
         </div>
 
         <div className="space-y-1">

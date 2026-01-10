@@ -10,6 +10,7 @@ export interface DashboardFilters {
   from?: string;
   to?: string;
   threshold?: number;
+  role?: UserRole; // ✅ add role here
 }
 
 interface FiltersBarProps {

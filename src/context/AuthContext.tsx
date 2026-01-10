@@ -142,7 +142,8 @@ export interface User {
   id: number;
   its_number: string;
   name: string;
-  role: UserRole | null; // always a valid UserRole or null
+  role: UserRole | null;
+  avatarUrl?: string | null;   // ✅ add avatar
 }
 
 interface AuthContextType {

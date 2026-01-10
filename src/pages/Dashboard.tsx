@@ -183,6 +183,7 @@ export function Dashboard() {
     darajah: undefined,
     hizb: undefined,
     hizb_group: undefined,
+    role: undefined,
     threshold: 75,
   });
 
@@ -198,7 +199,7 @@ export function Dashboard() {
     setLoading(true);
     setError(null);
 
-    getDashboard(user.role)
+  getDashboard({role:user.role})
       .then((res) => {
         console.log("Dashboard API response:", JSON.stringify(res, null, 2));
         setData(res);
